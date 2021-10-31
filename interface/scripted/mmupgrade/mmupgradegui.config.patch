@@ -1,0 +1,14 @@
+[
+	[
+		{
+			"op": "test",
+			"path": "/replaced",
+			"value": true
+		},
+		{
+			"op": "replace",
+			"path": "/scripts/0",
+			"value" : "/sys/stardust/quickbar/pat_quickbar.lua"
+		}
+	]
+]
