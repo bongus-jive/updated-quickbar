@@ -1,7 +1,9 @@
 require "/scripts/util.lua"
 
-local actions, compactLabels = {}, {}
+local actions = {}
 conditions = {}
+compactLabels = {}
+
 local function nullfunc() end
 local function action(id, ...) return (actions[id] or nullfunc)(...) end
 function condition(id, ...) return (conditions[id] or nullfunc)(...) end
@@ -13,6 +15,10 @@ function condition(id, ...) return (conditions[id] or nullfunc)(...) end
 function actions.pane(cfg)
   if type(cfg) ~= "table" then cfg = { config = cfg } end
   player.interact(cfg.type or "ScriptPane", cfg.config)
+end
+
+function actions.ui(cfg, data) -- metaGUI
+  player.interact("ScriptPane", { gui = { }, scripts = {"/metagui.lua"}, config = cfg, data = data })
 end
 
 function actions.exec(script, ...)
@@ -33,7 +39,6 @@ end
 ----------------
 -- conditions --
 ----------------
---copied from stardustcore
 
 function conditions.any(...)
   for _, c in pairs{...} do if condition(table.unpack(c)) then return true end end
@@ -100,7 +105,7 @@ local function buildList()
       table.insert(items, i)
     end
   end
-    
+  
   -- and then translate legacy entries
   for _, i in pairs(c.priority) do
     table.insert(items, {
@@ -156,19 +161,33 @@ local function buildList()
   end
 end
 
+local function compactTooltip(screenPosition)
+  for widgetName, label in pairs(compactLabels) do
+    if widget.inMember(widgetName, screenPosition) then
+      local tooltip = config.getParameter("tooltipLayout")
+      sb.logInfo(sb.printJson(tooltip))
+      
+      tooltip.text.value = label
+      if not tooltip.text.value or #tooltip.text.value == 0 then return end
+      
+      -- , yeah
+      local text = string.gsub(tooltip.text.value, "(^.-;)", "") --remove colors
+      local _,smalls = string.gsub(text, "[il.,:;'| ]", "") --small characters . i guess
+      local _,m = string.gsub(text, "[MmWw]", "") --m
+      local size = math.max(tooltip.background.size[1], math.ceil((#text + (m * 1.4) - (smalls * 0.6)) * 7.1))
+      
+      tooltip.background.size[1] = size
+      tooltip.text.position[1] = size / 2
+      tooltip.bg.fileBody = tooltip.bg.fileBody.."?scale="..size..";1"
+      
+      return tooltip
+    end
+  end
+end
+
 function init()
 	if config.getParameter("compacted") == true then
-	
-		function createTooltip(pos)
-			for widgetName, label in pairs(compactLabels) do
-				if widget.inMember(widgetName, pos) then
-					local tooltip = config.getParameter("tooltipLayout")
-					tooltip.description.value = label
-					return tooltip
-				end
-			end
-		end
-		
+    createTooltip = compactTooltip
 	end
 	
   buildList()
